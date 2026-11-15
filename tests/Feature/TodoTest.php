@@ -73,3 +73,39 @@ test('can delete a todo agenda', function () {
         'id' => $todo->id,
     ]);
 });
+
+test('can filter todos by status and search query', function () {
+    Todo::create([
+        'title' => 'Ngopi Pagi di Braga',
+        'description' => 'Pesan manual brew.',
+        'is_completed' => false,
+    ]);
+
+    Todo::create([
+        'title' => 'Baca Buku Sore',
+        'description' => 'Selesaikan bab 4.',
+        'is_completed' => true,
+    ]);
+
+    $this->get('/todos?status=active')
+        ->assertOk()
+        ->assertSee('Ngopi Pagi di Braga')
+        ->assertDontSee('Baca Buku Sore');
+
+    $this->get('/todos?status=completed')
+        ->assertOk()
+        ->assertSee('Baca Buku Sore')
+        ->assertDontSee('Ngopi Pagi di Braga');
+
+    $this->get('/todos?q=braga')
+        ->assertOk()
+        ->assertSee('Ngopi Pagi di Braga')
+        ->assertDontSee('Baca Buku Sore');
+});
+
+test('validates todo title is required', function () {
+    $this->post('/todos', [
+        'title' => '',
+        'description' => 'Tanpa judul.',
+    ])->assertSessionHasErrors('title');
+});

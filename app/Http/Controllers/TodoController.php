@@ -2,101 +2,106 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\SaveTodoRequest;
 use App\Models\Todo;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class TodoController extends Controller
 {
     /**
-     * Menampilkan semua Todo
+     * Menampilkan daftar Todo dengan filter status, pencarian, dan statistik ringkas.
      */
-    public function index()
+    public function index(Request $request): View
     {
-        $todos = Todo::latest('id')->get();
+        $status = (string) $request->query('status', 'all');
+        $search = trim((string) $request->query('q', ''));
 
-        return view('todo.index', compact('todos'));
+        $stats = Todo::query()
+            ->toBase()
+            ->selectRaw('COUNT(*) as total, COALESCE(SUM(CASE WHEN is_completed = true THEN 1 ELSE 0 END), 0) as completed')
+            ->first();
+
+        $totalCount = (int) ($stats->total ?? 0);
+        $completedCount = (int) ($stats->completed ?? 0);
+        $activeCount = $totalCount - $completedCount;
+
+        $todos = Todo::query()
+            ->select(['id', 'title', 'description', 'is_completed', 'created_at', 'updated_at'])
+            ->when($status === 'active', fn ($query) => $query->where('is_completed', false))
+            ->when($status === 'completed', fn ($query) => $query->where('is_completed', true))
+            ->when($search !== '', function ($query) use ($search): void {
+                $pattern = '%'.mb_strtolower($search).'%';
+                $query->where(function ($subQuery) use ($pattern): void {
+                    $subQuery->whereRaw('LOWER(title) LIKE ?', [$pattern])
+                        ->orWhereRaw('LOWER(COALESCE(description, \'\')) LIKE ?', [$pattern]);
+                });
+            })
+            ->latest('id')
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('todo.index', compact(
+            'todos',
+            'status',
+            'search',
+            'totalCount',
+            'activeCount',
+            'completedCount',
+        ));
     }
 
     /**
-     * Menampilkan form tambah Todo
+     * Menampilkan form tambah Todo.
      */
-    public function create()
+    public function create(): View
     {
         return view('todo.create');
     }
 
     /**
-     * Menyimpan Todo baru
+     * Menyimpan Todo baru.
      */
-    public function store(Request $request)
+    public function store(SaveTodoRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:5000'],
-            'is_completed' => ['sometimes', 'boolean'],
-        ], [
-            'title.required' => 'Judul wajib diisi.',
-            'title.string' => 'Judul harus berupa teks.',
-            'title.max' => 'Judul maksimal 255 karakter.',
-            'description.string' => 'Deskripsi harus berupa teks.',
-            'description.max' => 'Deskripsi maksimal 5000 karakter.',
-            'is_completed.boolean' => 'Status selesai tidak valid.',
-        ]);
-
-        $validated['is_completed'] = $request->boolean('is_completed');
-
-        Todo::create($validated);
+        Todo::create($request->todoAttributes());
 
         return redirect()->route('todos.index')
             ->with('success', 'Agenda baru berhasil dicatat ke jurnalmu ✨');
     }
 
     /**
-     * Menampilkan detail Todo
+     * Menampilkan detail Todo.
      */
-    public function show(Todo $todo)
+    public function show(Todo $todo): View
     {
         return view('todo.show', compact('todo'));
     }
 
     /**
-     * Menampilkan form edit Todo
+     * Menampilkan form edit Todo.
      */
-    public function edit(Todo $todo)
+    public function edit(Todo $todo): View
     {
         return view('todo.edit', compact('todo'));
     }
 
     /**
-     * Memperbarui Todo
+     * Memperbarui Todo.
      */
-    public function update(Request $request, Todo $todo)
+    public function update(SaveTodoRequest $request, Todo $todo): RedirectResponse
     {
-        $validated = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:5000'],
-            'is_completed' => ['sometimes', 'boolean'],
-        ], [
-            'title.required' => 'Judul wajib diisi.',
-            'title.string' => 'Judul harus berupa teks.',
-            'title.max' => 'Judul maksimal 255 karakter.',
-            'description.string' => 'Deskripsi harus berupa teks.',
-            'description.max' => 'Deskripsi maksimal 5000 karakter.',
-            'is_completed.boolean' => 'Status selesai tidak valid.',
-        ]);
-
-        $validated['is_completed'] = $request->boolean('is_completed');
-
-        $todo->update($validated);
+        $todo->update($request->todoAttributes());
 
         return redirect()->route('todos.index')
             ->with('success', 'Catatan agenda berhasil diperbarui ☕');
     }
 
     /**
-     * Mengubah status selesai Todo secara instan
+     * Mengubah status selesai Todo secara instan.
      */
-    public function toggle(Todo $todo)
+    public function toggle(Todo $todo): RedirectResponse
     {
         $todo->update([
             'is_completed' => ! $todo->is_completed,
@@ -110,9 +115,9 @@ class TodoController extends Controller
     }
 
     /**
-     * Menghapus Todo
+     * Menghapus Todo.
      */
-    public function destroy(Todo $todo)
+    public function destroy(Todo $todo): RedirectResponse
     {
         $todo->delete();
 

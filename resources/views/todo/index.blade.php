@@ -36,7 +36,7 @@
                 <!-- Total -->
                 <div class="text-center px-1.5 py-2 sm:px-3 sm:py-2.5 rounded-xl bg-[#faf7f2]/80">
                     <div class="text-base sm:text-2xl font-bold font-aesthetic-title text-[#382d27]">
-                        {{ $todos->count() }}
+                        {{ $totalCount }}
                     </div>
                     <div class="text-[10px] sm:text-xs text-[#8c7d75] font-medium mt-0.5">
                         Total
@@ -47,7 +47,7 @@
                 <div class="text-center px-1.5 py-2 sm:px-3 sm:py-2.5 rounded-xl bg-[#fdf8f3]">
                     <div class="text-base sm:text-2xl font-bold font-aesthetic-title text-[#b85d38] flex items-center justify-center gap-1">
                         <span class="w-1.5 h-1.5 rounded-full bg-[#b85d38] animate-pulse"></span>
-                        <span>{{ $todos->where('is_completed', false)->count() }}</span>
+                        <span>{{ $activeCount }}</span>
                     </div>
                     <div class="text-[10px] sm:text-xs text-[#b85d38] font-medium mt-0.5">
                         Berjalan
@@ -58,7 +58,7 @@
                 <div class="text-center px-1.5 py-2 sm:px-3 sm:py-2.5 rounded-xl bg-[#f2f7f4]">
                     <div class="text-base sm:text-2xl font-bold font-aesthetic-title text-[#2d6a4f] flex items-center justify-center gap-1">
                         <span class="w-1.5 h-1.5 rounded-full bg-[#2d6a4f]"></span>
-                        <span>{{ $todos->where('is_completed', true)->count() }}</span>
+                        <span>{{ $completedCount }}</span>
                     </div>
                     <div class="text-[10px] sm:text-xs text-[#2d6a4f] font-medium mt-0.5">
                         Selesai
@@ -87,6 +87,51 @@
     </a>
 </div>
 
+<!-- 2.5 FILTER TABS & SEARCH BAR -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 sm:mb-6 w-full">
+    <nav aria-label="Filter status agenda" class="flex items-center gap-1.5 bg-white/80 p-1 rounded-full border border-[#e8dfd3] shadow-2xs w-fit max-w-full overflow-x-auto">
+        @php
+            $filters = [
+                'all' => ['label' => 'Semua', 'count' => $totalCount],
+                'active' => ['label' => 'Berjalan', 'count' => $activeCount],
+                'completed' => ['label' => 'Selesai', 'count' => $completedCount],
+            ];
+        @endphp
+        @foreach($filters as $key => $filter)
+            <a href="{{ route('todos.index', array_filter(['status' => $key === 'all' ? null : $key, 'q' => $search !== '' ? $search : null])) }}"
+               class="px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 @if($status === $key) bg-[#382d27] text-[#faf7f2] shadow-xs @else text-[#6e5d53] hover:text-[#382d27] hover:bg-[#f3eae0] @endif">
+                <span>{{ $filter['label'] }}</span>
+                <span class="text-[10px] px-1.5 py-0.2 rounded-full @if($status === $key) bg-white/20 text-[#faf7f2] @else bg-[#f2e7db] text-[#8c6b58] @endif">
+                    {{ $filter['count'] }}
+                </span>
+            </a>
+        @endforeach
+    </nav>
+
+    <form action="{{ route('todos.index') }}" method="GET" class="flex items-center gap-2 w-full sm:w-auto sm:min-w-[260px]">
+        @if($status !== 'all')
+            <input type="hidden" name="status" value="{{ $status }}">
+        @endif
+        <div class="relative flex-1">
+            <input type="search"
+                   name="q"
+                   value="{{ $search }}"
+                   data-todo-search
+                   aria-label="Cari agenda"
+                   placeholder="Cari agenda... (tekan /)"
+                   class="w-full bg-white/95 border border-[#e5d8cb] rounded-full pl-9 pr-4 py-2 text-xs sm:text-sm text-[#382d27] placeholder-[#a89b91] focus:outline-none focus:ring-2 focus:ring-[#b85d38]/30 focus:border-[#b85d38] transition-all shadow-2xs">
+            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-[#9c8e85] pointer-events-none">🔍</span>
+        </div>
+        @if($search !== '')
+            <a href="{{ route('todos.index', array_filter(['status' => $status !== 'all' ? $status : null])) }}"
+               class="px-3 py-2 rounded-full text-xs font-semibold text-[#8c7d75] hover:text-[#382d27] bg-white border border-[#e5d8cb] shrink-0"
+               title="Reset pencarian">
+                Reset
+            </a>
+        @endif
+    </form>
+</div>
+
 <!-- 3. CARDS LIST -->
 <div class="grid gap-3 sm:gap-4 w-full">
     @forelse($todos as $todo)
@@ -100,6 +145,7 @@
                 @csrf
                 @method('PATCH')
                 <button type="submit" 
+                        aria-label="{{ $todo->is_completed ? 'Tandai belum selesai' : 'Tandai selesai' }}: {{ $todo->title }}"
                         class="w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 transition-all flex items-center justify-center cursor-pointer active:scale-90 @if($todo->is_completed) bg-[#2d6a4f] border-[#2d6a4f] text-white shadow-xs @else border-[#cfc0b2] bg-white hover:border-[#b85d38] text-transparent hover:text-[#b85d38]/30 @endif"
                         title="{{ $todo->is_completed ? 'Tandai belum selesai' : 'Tandai selesai' }}">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -180,24 +226,45 @@
     <!-- 4. EMPTY STATE: AESTHETIC CHILL VIBE -->
     <div class="text-center py-10 sm:py-16 px-5 aesthetic-card rounded-2xl sm:rounded-3xl my-4 sm:my-6 bg-white/90 w-full">
         <div class="w-14 h-14 sm:w-16 sm:h-16 mx-auto rounded-2xl sm:rounded-3xl bg-[#f5ede2] border border-[#ebdccb] flex items-center justify-center text-2xl sm:text-3xl mb-3 sm:mb-4 shadow-2xs">
-            ☕
+            {{ ($search !== '' || $status !== 'all') ? '🔍' : '☕' }}
         </div>
 
         <h3 class="text-lg sm:text-2xl font-bold text-[#382d27] font-aesthetic-title tracking-tight mb-1.5">
-            Belum Ada Catatan Hari Ini
+            @if($search !== '' || $status !== 'all')
+                Tidak Ada Agenda yang Cocok
+            @else
+                Belum Ada Catatan Hari Ini
+            @endif
         </h3>
 
-        <p class="text-[#7d685c] max-w-md mx-auto text-xs sm:text-sm leading-relaxed mb-5 font-aesthetic-hand text-base sm:text-lg">
-            "Waktunya menikmati kopi atau mulai tulis rencana seru pertamamu ✨"
+        <p class="text-[#7d685c] max-w-md mx-auto leading-relaxed mb-5 font-aesthetic-hand text-base sm:text-lg">
+            @if($search !== '' || $status !== 'all')
+                "Coba ubah filter status atau kata kunci pencarianmu ya ✨"
+            @else
+                "Waktunya menikmati kopi atau mulai tulis rencana seru pertamamu ✨"
+            @endif
         </p>
 
+        @if($search !== '' || $status !== 'all')
+        <a href="{{ route('todos.index') }}"
+           class="inline-flex items-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3 rounded-full bg-[#382d27] hover:bg-[#b85d38] text-white font-semibold text-xs tracking-wide shadow-sm hover:shadow-md transition-all duration-200">
+            <span>Tampilkan Semua Agenda</span>
+        </a>
+        @else
         <a href="{{ route('todos.create') }}"
            class="inline-flex items-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3 rounded-full bg-[#382d27] hover:bg-[#b85d38] text-white font-semibold text-xs tracking-wide shadow-sm hover:shadow-md transition-all duration-200">
             <span class="text-base leading-none font-bold">+</span>
             <span>Bikin Catatan Pertama ✨</span>
         </a>
+        @endif
     </div>
     @endforelse
 </div>
+
+@if($todos->hasPages())
+<div class="mt-6 sm:mt-8">
+    {{ $todos->links() }}
+</div>
+@endif
 
 @endsection

@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="description" content="Kota Klasik • Aesthetic Daily Planner untuk menata agenda harianmu dengan santai dan rapi.">
+    <meta name="theme-color" content="#faf7f2">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>">
     <title>@yield('title', 'Kota Klasik • Aesthetic Daily Planner')</title>
 
     <!-- Google Fonts: Fraunces (Chic Vintage Serif), Plus Jakarta Sans, Caveat (Aesthetic Handwritten) -->
@@ -12,29 +15,6 @@
 
     <!-- Vite Assets -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-
-    <style>
-        html, body {
-            overflow-x: hidden;
-            max-width: 100vw;
-        }
-
-        body {
-            background-color: #faf7f2;
-            background-image: radial-gradient(#e5ddd0 1.2px, transparent 1.2px);
-            background-size: 24px 24px;
-            font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            color: #382d27;
-        }
-
-        .font-aesthetic-title {
-            font-family: 'Fraunces', Georgia, serif;
-        }
-
-        .font-aesthetic-hand {
-            font-family: 'Caveat', cursive;
-        }
-    </style>
 </head>
 <body class="antialiased min-h-screen flex flex-col selection:bg-[#dfcbbe] selection:text-[#382d27] overflow-x-hidden w-full max-w-full">
 
@@ -84,7 +64,7 @@
     <main class="max-w-5xl mx-auto w-full px-4 sm:px-6 py-5 sm:py-8 flex-1 min-w-0">
         <!-- Alert Success -->
         @if(session('success'))
-        <div class="mb-5 sm:mb-6 p-3.5 sm:p-4 rounded-2xl bg-white border border-[#cbe1d3] shadow-xs flex items-center gap-3 text-[#2d6a4f] animate-fade-in w-full">
+        <div data-flash-toast role="status" class="mb-5 sm:mb-6 p-3.5 sm:p-4 rounded-2xl bg-white border border-[#cbe1d3] shadow-xs flex items-center gap-3 text-[#2d6a4f] animate-fade-in w-full">
             <span class="text-xl shrink-0">✨</span>
             <div class="flex-1 min-w-0">
                 <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#387a5c]">Catatan Tersimpan</p>
