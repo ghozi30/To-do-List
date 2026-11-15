@@ -35,11 +35,4 @@ $app = require_once __DIR__.'/../bootstrap/app.php';
 
 $app->useStoragePath($storagePath);
 
-// Explicitly override compiled view path & cache paths in config container
-config([
-    'view.compiled' => $storagePath.'/framework/views',
-    'cache.stores.file.path' => $storagePath.'/framework/cache/data',
-    'session.files' => $storagePath.'/framework/sessions',
-]);
-
 $app->handleRequest(Request::capture());

@@ -21,9 +21,7 @@ $app = Application::configure(basePath: dirname(__DIR__))
     })->create();
 
 if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL']) || env('VERCEL')) {
-    $storagePath = '/tmp/storage';
-    $app->useStoragePath($storagePath);
-    config(['view.compiled' => $storagePath.'/framework/views']);
+    $app->useStoragePath('/tmp/storage');
 }
 
 return $app;
