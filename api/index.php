@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 try {
     define('LARAVEL_START', microtime(true));
 
-    // Setup writable storage directories in /tmp for Vercel Serverless environment
+    // Setup writable storage and cache directories in /tmp for Vercel Serverless environment
     $storagePath = '/tmp/storage';
     $dirs = [
         $storagePath,
@@ -20,6 +20,8 @@ try {
         $storagePath.'/framework/cache/data',
         $storagePath.'/framework/sessions',
         $storagePath.'/logs',
+        $storagePath.'/bootstrap',
+        $storagePath.'/bootstrap/cache',
     ];
 
     foreach ($dirs as $dir) {
@@ -28,10 +30,21 @@ try {
         }
     }
 
-    // Ensure VIEW_COMPILED_PATH is pointing to /tmp
-    putenv("VIEW_COMPILED_PATH={$storagePath}/framework/views");
-    $_ENV['VIEW_COMPILED_PATH'] = "{$storagePath}/framework/views";
-    $_SERVER['VIEW_COMPILED_PATH'] = "{$storagePath}/framework/views";
+    // Redirect all writable cache & compiled view paths to /tmp
+    $envOverrides = [
+        'VIEW_COMPILED_PATH' => $storagePath.'/framework/views',
+        'APP_SERVICES_CACHE' => $storagePath.'/bootstrap/cache/services.php',
+        'APP_PACKAGES_CACHE' => $storagePath.'/bootstrap/cache/packages.php',
+        'APP_CONFIG_CACHE' => $storagePath.'/bootstrap/cache/config.php',
+        'APP_ROUTES_CACHE' => $storagePath.'/bootstrap/cache/routes.php',
+        'APP_EVENTS_CACHE' => $storagePath.'/bootstrap/cache/events.php',
+    ];
+
+    foreach ($envOverrides as $key => $value) {
+        putenv("{$key}={$value}");
+        $_ENV[$key] = $value;
+        $_SERVER[$key] = $value;
+    }
 
     require __DIR__.'/../vendor/autoload.php';
 
