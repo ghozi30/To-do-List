@@ -5,7 +5,7 @@ use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
 
-// Setup writable storage directories in /tmp for Vercel's serverless environment
+// Setup writable storage directories in /tmp for Vercel Serverless environment
 $storagePath = '/tmp/storage';
 $dirs = [
     $storagePath,
@@ -15,8 +15,6 @@ $dirs = [
     $storagePath.'/framework/cache/data',
     $storagePath.'/framework/sessions',
     $storagePath.'/logs',
-    $storagePath.'/bootstrap',
-    $storagePath.'/bootstrap/cache',
 ];
 
 foreach ($dirs as $dir) {
@@ -25,11 +23,23 @@ foreach ($dirs as $dir) {
     }
 }
 
+// Ensure VIEW_COMPILED_PATH is pointing to /tmp
+putenv("VIEW_COMPILED_PATH={$storagePath}/framework/views");
+$_ENV['VIEW_COMPILED_PATH'] = "{$storagePath}/framework/views";
+$_SERVER['VIEW_COMPILED_PATH'] = "{$storagePath}/framework/views";
+
 require __DIR__.'/../vendor/autoload.php';
 
 /** @var Application $app */
 $app = require_once __DIR__.'/../bootstrap/app.php';
 
 $app->useStoragePath($storagePath);
+
+// Explicitly override compiled view path & cache paths in config container
+config([
+    'view.compiled' => $storagePath.'/framework/views',
+    'cache.stores.file.path' => $storagePath.'/framework/cache/data',
+    'session.files' => $storagePath.'/framework/sessions',
+]);
 
 $app->handleRequest(Request::capture());
